@@ -1,1 +1,4 @@
 Func CarPlayManagerDelegate.carPlayManagerDidCancelPreview(_:) has been added as a protocol requirement
+EnumElement RoadName.name has been removed
+EnumElement RoadName.code has been removed
+Enum RoadName has been changed to a Struct
