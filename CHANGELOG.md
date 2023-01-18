@@ -2,6 +2,10 @@
 
 ## v2.11.0
 
+### Map
+
+* Added `NavigationMapView.addDestinationAnnotation(_:identifier:styleLoaded:)`, `NavigationMapView.removeDestinationAnnotation(_:)` to present and remove the final destination annotation on a NavigationMapView. ([#4253](https://github.com/mapbox/mapbox-navigation-ios/pull/4253))
+
 ### CarPlay
 
 * Added `CarPlayManagerDelegate.carPlayManagerDidCancelPreview(_:)` to notify developers after CarPlay canceled routes preview, and `CarPlayManager.cancelRoutesPreview()` method to cancel routes preview on CarPlay. ([#4311](https://github.com/mapbox/mapbox-navigation-ios/pull/4311))

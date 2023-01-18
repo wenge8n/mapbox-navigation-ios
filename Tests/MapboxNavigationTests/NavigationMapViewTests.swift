@@ -2,7 +2,7 @@ import XCTest
 import MapboxDirections
 import TestHelper
 import Turf
-import MapboxMaps
+@testable import MapboxMaps
 @testable import MapboxNavigation
 @testable import MapboxCoreNavigation
 
@@ -12,6 +12,7 @@ class NavigationMapViewTests: TestCase {
         CLLocationCoordinate2D(latitude: 29.99908, longitude: -102.828197),
     ]))
     var navigationMapView: NavigationMapView!
+    var pointAnnotationManager: PointAnnotationManager!
     
     let options: NavigationRouteOptions = .init(coordinates: [
         CLLocationCoordinate2D(latitude: 40.311012, longitude: -112.47926),
@@ -21,10 +22,25 @@ class NavigationMapViewTests: TestCase {
         let route = response.routes!.first!
         return route
     }()
+
+    private let coordinate1 = CLLocationCoordinate2D(latitude: 40.311012, longitude: -112.47926)
+    private let coordinate2 = CLLocationCoordinate2D(latitude: 30.176322, longitude: -102.806108)
+    private let finalDestinationAnnotationTestPrefix = "MapboxNavigation-MapboxNavigation-resources_finalDestinationAnnotation"
+
+    private final class DisplayLinkCoordinatorSpy: DisplayLinkCoordinator {
+        func add(_ participant: DisplayLinkParticipant) {}
+        func remove(_ participant: DisplayLinkParticipant) {}
+    }
     
     override func setUp() {
         super.setUp()
         navigationMapView = NavigationMapView(frame: CGRect(origin: .zero, size: .iPhone6Plus))
+        let mapboxMap = navigationMapView.mapView.mapboxMap!
+        pointAnnotationManager = PointAnnotationManager(id: "",
+                                                        style: mapboxMap.style,
+                                                        layerPosition: nil,
+                                                        displayLinkCoordinator: DisplayLinkCoordinatorSpy(),
+                                                        offsetPointCalculator: OffsetPointCalculator(mapboxMap: mapboxMap))
     }
     
     override func tearDown() {
@@ -582,6 +598,82 @@ class NavigationMapViewTests: TestCase {
         let style = navigationMapView.mapView.mapboxMap.style
         XCTAssertFalse(style.sourceExists(withId: NavigationMapView.SourceIdentifier.intersectionAnnotationsSource))
         XCTAssertFalse(style.layerExists(withId: NavigationMapView.LayerIdentifier.intersectionAnnotationsLayer))
+    }
+
+    func testAddFinalDestinationWithDefaultIdentifierIfStyleNotLoaded() {
+        XCTAssertTrue(navigationMapView.finalDestinationAnnotations.isEmpty)
+        XCTAssertTrue(pointAnnotationManager.annotations.isEmpty)
+
+        navigationMapView.addDestinationAnnotation(coordinate1)
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations.count, 1)
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations[0].id, "\(finalDestinationAnnotationTestPrefix)_0")
+        XCTAssertTrue(pointAnnotationManager.annotations.isEmpty)
+
+        navigationMapView.addDestinationAnnotation(coordinate2)
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations.count, 2)
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations[1].id, "\(finalDestinationAnnotationTestPrefix)_1")
+        XCTAssertTrue(pointAnnotationManager.annotations.isEmpty)
+    }
+
+    func testAddFinalDestinationWithCustomIdentifierIfStyleNotLoaded() {
+        navigationMapView.addDestinationAnnotation(coordinate1, identifier: "custom")
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations.count, 1)
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations[0].id, "custom")
+    }
+
+    func testRemovesFinalDestinationIfStyleNotLoaded() {
+        navigationMapView.addDestinationAnnotation(coordinate1)
+        navigationMapView.addDestinationAnnotation(coordinate2)
+
+        navigationMapView.removeDestinationAnnotation(identifier: "custom")
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations.count, 2)
+
+        navigationMapView.addDestinationAnnotation(coordinate2, identifier: "custom")
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations.count, 3)
+        navigationMapView.removeDestinationAnnotation(identifier: "custom")
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations.count, 2)
+
+        navigationMapView.removeDestinationAnnotation()
+        XCTAssertEqual(navigationMapView.finalDestinationAnnotations.count, 0)
+    }
+
+    func testAddFinalDestinationWithDefaultIdentifierIfStyleLoaded() {
+        navigationMapView.pointAnnotationManager = pointAnnotationManager
+
+        navigationMapView.addDestinationAnnotation(coordinate1)
+        XCTAssertTrue(navigationMapView.finalDestinationAnnotations.isEmpty)
+        XCTAssertEqual(pointAnnotationManager.annotations.count, 1)
+        XCTAssertEqual(pointAnnotationManager.annotations[0].id, "\(finalDestinationAnnotationTestPrefix)_0")
+
+        navigationMapView.addDestinationAnnotation(coordinate2)
+        XCTAssertTrue(navigationMapView.finalDestinationAnnotations.isEmpty)
+        XCTAssertEqual(pointAnnotationManager.annotations.count, 2)
+        XCTAssertEqual(pointAnnotationManager.annotations[1].id, "\(finalDestinationAnnotationTestPrefix)_1")
+    }
+
+    func testAddFinalDestinationWithCustomIdentifierIfStyleLoaded() {
+        navigationMapView.pointAnnotationManager = pointAnnotationManager
+
+        navigationMapView.addDestinationAnnotation(coordinate1, identifier: "custom")
+        XCTAssertEqual(pointAnnotationManager.annotations.count, 1)
+        XCTAssertEqual(pointAnnotationManager.annotations[0].id, "custom")
+    }
+
+    func testRemovesFinalDestinationIfStyleLoaded() {
+        navigationMapView.pointAnnotationManager = pointAnnotationManager
+        navigationMapView.addDestinationAnnotation(coordinate1)
+        navigationMapView.addDestinationAnnotation(coordinate2)
+
+        navigationMapView.removeDestinationAnnotation(identifier: "custom")
+        XCTAssertEqual(pointAnnotationManager.annotations.count, 2)
+
+        navigationMapView.addDestinationAnnotation(coordinate2, identifier: "custom")
+        XCTAssertEqual(pointAnnotationManager.annotations.count, 3)
+        navigationMapView.removeDestinationAnnotation(identifier: "custom")
+        XCTAssertEqual(pointAnnotationManager.annotations.count, 2)
+
+        navigationMapView.removeDestinationAnnotation()
+        XCTAssertEqual(pointAnnotationManager.annotations.count, 0)
     }
 
     private func configureIntersections() {
