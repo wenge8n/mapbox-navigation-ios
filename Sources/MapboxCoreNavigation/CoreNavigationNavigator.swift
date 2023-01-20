@@ -1,6 +1,7 @@
 import MapboxNavigationNative
 import MapboxDirections
 @_implementationOnly import MapboxCommon_Private
+@_implementationOnly import MapboxNavigationNative_Private
 
 protocol CoreNavigator {
     static var shared: Self { get }
@@ -45,6 +46,8 @@ final class Navigator: CoreNavigator {
     static var tilesVersion: String = ""
     
     private(set) var navigator: MapboxNavigationNative.Navigator
+    private var telemetry: Telemetry!
+    private let eventsMetadataProvider: EventsMetadataInterface
     
     private(set) var cacheHandle: CacheHandle
     
@@ -149,6 +152,8 @@ final class Navigator: CoreNavigator {
         roadObjectStore = RoadObjectStore(navigator.roadObjectStore())
         roadObjectMatcher = RoadObjectMatcher(MapboxNavigationNative.RoadObjectMatcher(cache: cacheHandle))
         rerouteController = RerouteController(navigator, config: NativeHandlersFactory.configHandle())
+        eventsMetadataProvider = EventsMetadataProvider()
+        telemetry = navigator.getTelemetryForEventsMetadataProvider(eventsMetadataProvider)
         
         subscribeNavigator()
         setupAlternativesControllerIfNeeded()
@@ -174,6 +179,7 @@ final class Navigator: CoreNavigator {
         cacheHandle = factory.cacheHandle
         roadGraph = factory.roadGraph
         navigator = factory.navigator
+        telemetry = navigator.getTelemetryForEventsMetadataProvider(eventsMetadataProvider)
         
         roadObjectStore.native = navigator.roadObjectStore()
         roadObjectMatcher.native = MapboxNavigationNative.RoadObjectMatcher(cache: cacheHandle)

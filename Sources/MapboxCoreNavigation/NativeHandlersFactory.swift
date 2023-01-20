@@ -136,7 +136,8 @@ class NativeHandlersFactory {
     static func configHandle(by configFactoryType: ConfigFactory.Type = ConfigFactory.self) -> ConfigHandle {
         let defaultConfig = [
             customConfigFeaturesKey: [
-                "useInternalReroute": true
+                "useInternalReroute": true,
+                "useTelemetryNavigationEvents": true,
             ]
         ]
         
